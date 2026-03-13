@@ -300,6 +300,21 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
 
         let customLinks = [];
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        async function deleteProject(slug) {
+            if (!confirm('Supprimer le projet "' + slug + '" ?')) return;
+            try {
+                const res = await fetch('api.php?action=delete&slug=' + encodeURIComponent(slug), { method: 'POST' });
+                const result = await res.json();
+                if (result.success) { fetchProjects(); createNewProject(); }
+                else { alert('Erreur: ' + (result.error || 'Suppression impossible')); }
+            } catch(e) { alert('Erreur réseau'); }
+        }
+
         async function fetchProjects() {
             const listEl = document.getElementById('project-list');
             listEl.innerHTML = '<div class="text-sm text-gray-400">Chargement...</div>';
@@ -311,9 +326,8 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                 if(projects.length === 0) listEl.innerHTML = '<div class="text-sm p-2 text-gray-400">Aucun projet</div>';
                 projects.forEach(p => {
                     const div = document.createElement('div');
-                    div.className = 'cursor-pointer p-2 hover:bg-gray-100 rounded group transition';
-                    div.onclick = () => loadProject(p.slug);
-                    div.innerHTML = `<div class="font-bold text-gray-700 text-sm group-hover:text-blue-600">${p.name || 'Sans nom'}</div><div class="text-xs text-gray-400 truncate">${p.job || p.slug}</div>`;
+                    div.className = 'cursor-pointer p-2 hover:bg-gray-100 rounded group transition flex justify-between items-center';
+                    div.innerHTML = `<div onclick="loadProject('${p.slug}')"><div class="font-bold text-gray-700 text-sm group-hover:text-blue-600">${escapeHtml(p.name) || 'Sans nom'}</div><div class="text-xs text-gray-400 truncate">${escapeHtml(p.job) || p.slug}</div></div><span onclick="event.stopPropagation(); deleteProject('${p.slug}')" class="text-red-400 hover:text-red-600 text-xs font-bold opacity-0 group-hover:opacity-100 transition ml-2" title="Supprimer">✕</span>`;
                     listEl.appendChild(div);
                 });
             } catch (e) { listEl.innerHTML = '<div class="text-red-500 text-xs">Erreur serveur</div>'; }
@@ -430,19 +444,41 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
         function generateHTML(data) {
             let finalLogoUrl = data.logoUrl;
             if (finalLogoUrl && !finalLogoUrl.startsWith('http')) { finalLogoUrl = window.location.origin + window.location.pathname.replace('index.php', '') + finalLogoUrl; }
-            
+
             const iconsHtml = generateIconsHTML(data);
-            const commonStyles = `font-family: Arial, sans-serif; font-size: ${data.fontSize}px; line-height: 1.4; color: #333333;`;
-            const taglineHtml = data.tagline ? data.tagline.replace(/\n/g, '<br>') : '';
+            const fs = parseInt(data.fontSize) || 14;
+            const commonStyles = `font-family: Arial, sans-serif; font-size: ${fs}px; line-height: 1.4; color: #333333; mso-line-height-rule: exactly;`;
+            const taglineHtml = data.tagline ? escapeHtml(data.tagline).replace(/\n/g, '<br>') : '';
+            const safeName = escapeHtml(data.name);
+            const safeJob = escapeHtml(data.job);
+            const safeCompany = escapeHtml(data.company);
+            const safeEmail = escapeHtml(data.email);
+            const safePhone = escapeHtml(data.phone);
+            const safeAddress = escapeHtml(data.address);
+            const safeWebsite = escapeHtml((data.website || '').replace(/^https?:\/\//, ''));
             let webHref = data.website || '';
             if(webHref && !webHref.match(/^https?:\/\//)) { webHref = 'https://' + webHref; }
             const logoW = data.logoWidth || 100;
             const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(data.address || '');
 
-            const iconEmailImg = `<img src="${ICONS.email}" width="14" height="14" style="vertical-align:middle; width:14px; margin-right:5px; display:inline-block;" alt="e:">`;
-            const iconPhoneImg = `<img src="${ICONS.phone}" width="14" height="14" style="vertical-align:middle; width:14px; margin-right:5px; display:inline-block;" alt="t:">`;
-            const iconWebImg = `<img src="${ICONS.web_black}" width="14" height="14" style="vertical-align:middle; width:14px; margin-right:5px; display:inline-block;" alt="w:">`;
-            const iconAddrImg = `<img src="${ICONS.address}" width="14" height="14" style="vertical-align:middle; width:14px; margin-right:5px; display:inline-block;" alt="a:">`;
+            const iconEmailImg = `<img src="${ICONS.email}" width="14" height="14" style="vertical-align:middle; width:14px; height:14px; border:0;" alt="Email">`;
+            const iconPhoneImg = `<img src="${ICONS.phone}" width="14" height="14" style="vertical-align:middle; width:14px; height:14px; border:0;" alt="Tel">`;
+            const iconWebImg = `<img src="${ICONS.web_black}" width="14" height="14" style="vertical-align:middle; width:14px; height:14px; border:0;" alt="Web">`;
+            const iconAddrImg = `<img src="${ICONS.address}" width="14" height="14" style="vertical-align:middle; width:14px; height:14px; border:0;" alt="Adresse">`;
+
+            function contactRow(iconImg, href, text) {
+                return `<tr><td width="22" valign="middle" style="padding:0 5px 4px 0;">${iconImg}</td><td valign="middle" style="padding:0 0 4px 0; font-size:${fs}px; font-family:Arial,sans-serif;"><a href="${href}" style="color:#333333; text-decoration:none;" target="_blank">${text}</a></td></tr>`;
+            }
+
+            function contactTable() {
+                let rows = '';
+                if(data.email) rows += contactRow(iconEmailImg, `mailto:${data.email}`, safeEmail);
+                if(data.phone) rows += contactRow(iconPhoneImg, `tel:${data.phone}`, safePhone);
+                if(data.address) rows += contactRow(iconAddrImg, mapUrl, safeAddress);
+                if(data.website) rows += contactRow(iconWebImg, webHref, safeWebsite);
+                if (!rows) return '';
+                return `<table cellpadding="0" cellspacing="0" border="0" style="font-size:${fs}px;">${rows}</table>`;
+            }
 
             // BOUTON AVIS (HEIGHT 28px)
             let reviewBtnHtml = '';
@@ -450,13 +486,24 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                 let reviewHref = data.googleReviewUrl;
                 if(!reviewHref.match(/^https?:\/\//)) { reviewHref = 'https://' + reviewHref; }
                 reviewBtnHtml = `
-                <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;">
+                <table cellpadding="0" cellspacing="0" border="0" role="presentation">
                     <tr>
-                        <td height="28" bgcolor="${data.primaryColor}" style="height: 28px; background-color: ${data.primaryColor}; border-radius: 4px; padding: 0 12px; vertical-align: middle;">
-                            <a href="${reviewHref}" target="_blank" style="color: #ffffff; text-decoration: none; font-weight: bold; font-size: 12px; font-family: Arial, sans-serif; display: block; line-height: 28px;">
-                                ⭐ Laissez un avis
+                        <td height="28" bgcolor="${data.primaryColor}" style="height:28px; background-color:${data.primaryColor}; border-radius:4px; mso-padding-alt:0 12px; vertical-align:middle;">
+                            <a href="${reviewHref}" target="_blank" style="color:#ffffff; text-decoration:none; font-weight:bold; font-size:12px; font-family:Arial,sans-serif; display:inline-block; line-height:28px; padding:0 12px; mso-line-height-rule:exactly;">
+                                &#11088; Laissez un avis
                             </a>
                         </td>
+                    </tr>
+                </table>`;
+            }
+
+            function footerRow() {
+                if (!iconsHtml && !reviewBtnHtml) return '';
+                return `
+                <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="padding-top:10px;">
+                    <tr>
+                        <td valign="middle" style="padding-right:15px;">${iconsHtml}</td>
+                        <td valign="middle">${reviewBtnHtml}</td>
                     </tr>
                 </table>`;
             }
@@ -465,29 +512,21 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
 
             if (data.template === 'classic') {
                 innerContent = `
-                <table cellpadding="0" cellspacing="0" border="0" style="${commonStyles} width: 100%;">
+                <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="${commonStyles}">
                     <tr>
-                        ${finalLogoUrl ? `<td valign="middle" style="padding-right: 15px; width: ${logoW}px;"><img src="${finalLogoUrl}" alt="Logo" width="${logoW}" style="width: ${logoW}px; border-radius: 4px; display: block;"></td>` : ''}
-                        <td width="2" valign="middle" style="padding-right: 15px;">
-                            <div style="width: 2px; height: 100px; background-color: ${data.primaryColor};"></div>
-                        </td>
-                        <td valign="middle">
-                            <div style="font-weight: bold; font-size: ${parseInt(data.fontSize) + 4}px; color: #000000; margin-bottom: 2px;">${data.name}</div>
-                            <div style="color: ${data.primaryColor}; font-weight: bold; margin-bottom: 6px;">${data.job} ${data.company ? '| ' + data.company : ''}</div>
-                            ${taglineHtml ? `<div style="font-size: ${parseInt(data.fontSize) - 1}px; color: #666; margin-bottom: 8px; font-style: italic;">${taglineHtml}</div>` : '<div style="margin-bottom: 8px;"></div>'}
-                            
-                            <table cellpadding="0" cellspacing="0" border="0">
-                                ${data.email ? `<tr><td width="20" valign="middle" style="padding-bottom:3px;">${iconEmailImg}</td><td valign="middle" style="padding-bottom:3px;"><a href="mailto:${data.email}" style="color:#333;text-decoration:none;">${data.email}</a></td></tr>` : ''}
-                                ${data.phone ? `<tr><td width="20" valign="middle" style="padding-bottom:3px;">${iconPhoneImg}</td><td valign="middle" style="padding-bottom:3px;"><a href="tel:${data.phone}" style="color:#333;text-decoration:none;">${data.phone}</a></td></tr>` : ''}
-                                ${data.address ? `<tr><td width="20" valign="middle" style="padding-bottom:3px;">${iconAddrImg}</td><td valign="middle" style="padding-bottom:3px;"><a href="${mapUrl}" target="_blank" style="color:#333;text-decoration:none;">${data.address}</a></td></tr>` : ''}
-                                ${data.website ? `<tr><td width="20" valign="middle" style="padding-bottom:2px;">${iconWebImg}</td><td valign="middle" style="padding-bottom:2px;"><a href="${webHref}" style="color:#333;text-decoration:none;">${data.website.replace(/^https?:\/\//, '')}</a></td></tr>` : ''}
+                        ${finalLogoUrl ? `<td valign="top" width="${logoW}" style="padding-right:15px;"><img src="${finalLogoUrl}" alt="${safeCompany || 'Logo'}" width="${logoW}" height="auto" style="width:${logoW}px; border-radius:4px; display:block; border:0;"></td>` : ''}
+                        <td valign="top" width="2" style="padding-right:15px;">
+                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="2" style="width:2px;">
+                                <tr><td bgcolor="${data.primaryColor}" width="2" height="100" style="width:2px; height:100px; background-color:${data.primaryColor}; font-size:1px; line-height:1px;">&nbsp;</td></tr>
                             </table>
-                            
-                            <table cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                    <td valign="middle" style="padding-right: 15px;">${iconsHtml}</td>
-                                    <td valign="middle">${reviewBtnHtml}</td>
-                                </tr>
+                        </td>
+                        <td valign="top">
+                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="font-family:Arial,sans-serif;">
+                                <tr><td style="font-weight:bold; font-size:${fs + 4}px; color:#000000; padding-bottom:2px; line-height:1.3; mso-line-height-rule:exactly;">${safeName}</td></tr>
+                                <tr><td style="color:${data.primaryColor}; font-weight:bold; font-size:${fs}px; padding-bottom:6px;">${safeJob}${safeCompany ? ' | ' + safeCompany : ''}</td></tr>
+                                ${taglineHtml ? `<tr><td style="font-size:${fs - 1}px; color:#666666; padding-bottom:8px; font-style:italic;">${taglineHtml}</td></tr>` : `<tr><td style="padding-bottom:8px; font-size:1px; line-height:1px;">&nbsp;</td></tr>`}
+                                <tr><td>${contactTable()}</td></tr>
+                                <tr><td>${footerRow()}</td></tr>
                             </table>
                         </td>
                     </tr>
@@ -495,36 +534,33 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
             }
 
             if (data.template === 'horizontal') {
-                
-                let infoItems = [];
-                if(data.email) infoItems.push(`<span style="white-space:nowrap; display:inline-block; margin-right:15px; margin-bottom:4px;">${iconEmailImg} <a href="mailto:${data.email}" style="color:#333;text-decoration:none;">${data.email}</a></span>`);
-                if(data.phone) infoItems.push(`<span style="white-space:nowrap; display:inline-block; margin-right:15px; margin-bottom:4px;">${iconPhoneImg} <a href="tel:${data.phone}" style="color:#333;text-decoration:none;">${data.phone}</a></span>`);
-                if(data.website) infoItems.push(`<span style="white-space:nowrap; display:inline-block; margin-right:15px; margin-bottom:4px;">${iconWebImg} <a href="${webHref}" style="color:#333;text-decoration:none;">${data.website.replace(/^https?:\/\//, '')}</a></span>`);
-                if(data.address) infoItems.push(`<span style="white-space:nowrap; display:inline-block; margin-bottom:4px;">${iconAddrImg} <a href="${mapUrl}" target="_blank" style="color:#333;text-decoration:none;">${data.address}</a></span>`);
-                
-                const separator = ''; // PLUS DE SEPARATEUR | (Utilise le margin-right des spans)
-                const infoBlock = infoItems.join(separator);
+                let infoRows = '';
+                if(data.email) infoRows += contactRow(iconEmailImg, `mailto:${data.email}`, safeEmail);
+                if(data.phone) infoRows += contactRow(iconPhoneImg, `tel:${data.phone}`, safePhone);
+                if(data.website) infoRows += contactRow(iconWebImg, webHref, safeWebsite);
+                if(data.address) infoRows += contactRow(iconAddrImg, mapUrl, safeAddress);
 
                 innerContent = `
-                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="${commonStyles} width: 100%;">
+                <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="${commonStyles}">
                     <tr>
-                        ${finalLogoUrl ? `<td valign="middle" style="padding-right: 20px; width: ${logoW}px;"><img src="${finalLogoUrl}" alt="Logo" width="${logoW}" style="width: ${logoW}px; border-radius: 50%; display: block;"></td>` : ''}
-                        <td valign="middle">
-                            <div style="font-weight: bold; font-size: ${parseInt(data.fontSize) + 4}px; color: #000000;">${data.name}</div>
-                            <div style="font-size: ${parseInt(data.fontSize)}px; color: #555; margin-bottom: 2px;">${data.job} @ ${data.company}</div>
-                            ${taglineHtml ? `<div style="font-size: ${parseInt(data.fontSize) - 2}px; color: #888;">${taglineHtml}</div>` : ''}
-                            
-                            <div style="border-bottom: 1px solid ${data.primaryColor}; width: 100%; margin: 8px 0;"></div>
-                            
-                            <div style="line-height: 1.6; width: 100%;">
-                                ${infoBlock}
-                            </div>
-                            
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 5px;">
-                                <tr>
-                                    <td align="left" valign="middle">${iconsHtml}</td>
-                                    <td align="right" valign="middle">${reviewBtnHtml}</td>
-                                </tr>
+                        ${finalLogoUrl ? `<td valign="top" width="${logoW}" style="padding-right:20px;"><img src="${finalLogoUrl}" alt="${safeCompany || 'Logo'}" width="${logoW}" height="auto" style="width:${logoW}px; border-radius:50%; display:block; border:0;"></td>` : ''}
+                        <td valign="top">
+                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="font-family:Arial,sans-serif;">
+                                <tr><td style="font-weight:bold; font-size:${fs + 4}px; color:#000000; line-height:1.3; mso-line-height-rule:exactly;">${safeName}</td></tr>
+                                <tr><td style="font-size:${fs}px; color:#555555; padding-bottom:2px;">${safeJob} @ ${safeCompany}</td></tr>
+                                ${taglineHtml ? `<tr><td style="font-size:${fs - 2}px; color:#888888;">${taglineHtml}</td></tr>` : ''}
+                                <tr><td style="padding-top:8px; padding-bottom:8px;">
+                                    <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%"><tr><td bgcolor="${data.primaryColor}" height="1" style="height:1px; font-size:1px; line-height:1px; background-color:${data.primaryColor};">&nbsp;</td></tr></table>
+                                </td></tr>
+                                ${infoRows ? `<tr><td><table cellpadding="0" cellspacing="0" border="0" style="font-size:${fs}px;">${infoRows}</table></td></tr>` : ''}
+                                <tr><td>
+                                    <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="padding-top:5px;">
+                                        <tr>
+                                            <td align="left" valign="middle">${iconsHtml}</td>
+                                            <td align="right" valign="middle">${reviewBtnHtml}</td>
+                                        </tr>
+                                    </table>
+                                </td></tr>
                             </table>
                         </td>
                     </tr>
@@ -533,42 +569,33 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
 
             if (data.template === 'header') {
                 innerContent = `
-                <table cellpadding="0" cellspacing="0" border="0" style="${commonStyles} width: 100%;">
-                    ${finalLogoUrl ? `<tr><td style="padding-bottom: 15px;"><img src="${finalLogoUrl}" alt="Logo" width="${logoW}" style="width: ${logoW}px; display: block;"></td></tr>` : ''}
+                <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="${commonStyles}">
+                    ${finalLogoUrl ? `<tr><td style="padding-bottom:15px;"><img src="${finalLogoUrl}" alt="${safeCompany || 'Logo'}" width="${logoW}" height="auto" style="width:${logoW}px; display:block; border:0;"></td></tr>` : ''}
                     <tr>
-                        <td style="border-left: 4px solid ${data.primaryColor}; padding-left: 15px;">
-                             <div style="font-weight: bold; font-size: ${parseInt(data.fontSize) + 6}px; color: #000000;">${data.name}</div>
-                             <div style="color: ${data.primaryColor}; font-weight: bold; font-size: ${data.fontSize}px; text-transform: uppercase;">${data.job}</div>
-                             ${taglineHtml ? `<div style="font-size: ${parseInt(data.fontSize) - 2}px; color: #666; margin-bottom: 12px; margin-top:2px;">${taglineHtml}</div>` : '<div style="margin-bottom:12px;"></div>'}
-                             
-                             <table cellpadding="0" cellspacing="0" border="0">
-                                ${data.email ? `<tr><td width="20" valign="middle" style="padding-bottom:3px;">${iconEmailImg}</td><td valign="middle" style="padding-bottom:3px;"><a href="mailto:${data.email}" style="color:#333;text-decoration:none;">${data.email}</a></td></tr>` : ''}
-                                ${data.phone ? `<tr><td width="20" valign="middle" style="padding-bottom:3px;">${iconPhoneImg}</td><td valign="middle" style="padding-bottom:3px;"><a href="tel:${data.phone}" style="color:#333;text-decoration:none;">${data.phone}</a></td></tr>` : ''}
-                                ${data.address ? `<tr><td width="20" valign="middle" style="padding-bottom:3px;">${iconAddrImg}</td><td valign="middle" style="padding-bottom:3px;"><a href="${mapUrl}" target="_blank" style="color:#333;text-decoration:none;">${data.address}</a></td></tr>` : ''}
-                                ${data.website ? `<tr><td width="20" valign="middle" style="padding-bottom:2px;">${iconWebImg}</td><td valign="middle" style="padding-bottom:2px;"><a href="${webHref}" style="color:#333;text-decoration:none;">${data.website.replace(/^https?:\/\//, '')}</a></td></tr>` : ''}
-                             </table>
-                             
-                             <table cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                    <td valign="middle" style="padding-right: 15px;">${iconsHtml}</td>
-                                    <td valign="middle">${reviewBtnHtml}</td>
-                                </tr>
+                        <td style="border-left:4px solid ${data.primaryColor}; padding-left:15px;">
+                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="font-family:Arial,sans-serif;">
+                                <tr><td style="font-weight:bold; font-size:${fs + 6}px; color:#000000; line-height:1.3; mso-line-height-rule:exactly;">${safeName}</td></tr>
+                                <tr><td style="color:${data.primaryColor}; font-weight:bold; font-size:${fs}px; text-transform:uppercase;">${safeJob}</td></tr>
+                                ${taglineHtml ? `<tr><td style="font-size:${fs - 2}px; color:#666666; padding-bottom:12px; padding-top:2px;">${taglineHtml}</td></tr>` : `<tr><td style="padding-bottom:12px; font-size:1px; line-height:1px;">&nbsp;</td></tr>`}
+                                <tr><td>${contactTable()}</td></tr>
+                                <tr><td>${footerRow()}</td></tr>
                             </table>
                         </td>
                     </tr>
                 </table>`;
             }
 
-            const borderStyle = data.showBorder ? 'border: 1px solid #eeeeee; border-radius: 12px;' : '';
+            const borderStyle = data.showBorder ? 'border:1px solid #eeeeee; border-radius:12px;' : '';
 
-            return `
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" align="left" style="width: 100%; max-width: 650px; background-color: #ffffff; ${borderStyle} margin: 0;">
+            return `<!--[if mso]><table role="presentation" width="650" cellpadding="0" cellspacing="0" border="0" align="left"><tr><td><![endif]-->
+            <table cellpadding="0" cellspacing="0" border="0" role="presentation" align="left" style="width:100%; max-width:650px; background-color:#ffffff; ${borderStyle}">
                 <tr>
-                    <td style="padding: 20px;">
+                    <td style="padding:20px;">
                         ${innerContent}
                     </td>
                 </tr>
-            </table>`;
+            </table>
+            <!--[if mso]></td></tr></table><![endif]-->`;
         }
 
         function getFormData() {
@@ -596,7 +623,7 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
             document.getElementById('logoWidthDisplay').innerText = data.logoWidth + "px";
             document.getElementById('preview-output').innerHTML = generateHTML(data); 
         }
-        function resetForm() { document.querySelectorAll('input, textarea').forEach(i => { if(i.type !== 'color' && i.type !== 'number' && i.type !== 'range' && i.type !== 'checkbox') i.value = ''; }); document.getElementById('logoPreview').innerText = ""; customLinks = []; renderLinkInputs(); updateSignature(); }
+        function resetForm() { document.querySelectorAll('input, textarea').forEach(i => { if(i.type === 'checkbox') i.checked = false; else if(i.type !== 'color' && i.type !== 'number' && i.type !== 'range') i.value = ''; }); document.getElementById('logoPreview').innerText = ""; customLinks = []; renderLinkInputs(); updateSignature(); }
         async function copyToClipboard() { const html = generateHTML(getFormData()); try { await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([html], { type: 'text/plain' }) })]); alert('Copié !'); } catch (err) { navigator.clipboard.writeText(html); alert('Copié (HTML brut).'); } }
 
         fetchProjects(); updateSignature();
