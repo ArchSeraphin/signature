@@ -160,6 +160,13 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                             <input type="number" id="fontSize" value="14" min="10" max="20" oninput="updateSignature()">
                         </div>
                     </div>
+                    <div class="flex items-center mt-4 pt-4 border-t border-gray-100">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="showBorder" class="sr-only peer" onchange="updateSignature()">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span class="ml-3 text-sm font-semibold text-gray-700">Afficher le cadre autour de la signature</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
@@ -353,7 +360,8 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                 document.getElementById('fontSize').value = data.fontSize || 14;
                 document.getElementById('logoWidth').value = data.logoWidth || 100;
                 document.getElementById('googleReviewUrl').value = data.googleReviewUrl || '';
-                
+                document.getElementById('showBorder').checked = data.showBorder || false;
+
                 customLinks = data.customLinks || [];
                 renderLinkInputs(); updateSignature();
                 document.getElementById('status-msg').innerText = "Projet chargé : " + slug;
@@ -551,8 +559,10 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                 </table>`;
             }
 
+            const borderStyle = data.showBorder ? 'border: 1px solid #eeeeee; border-radius: 12px;' : '';
+
             return `
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" align="left" style="width: 100%; max-width: 650px; background-color: #ffffff; border-radius: 12px; border: 1px solid #eeeeee; margin: 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" align="left" style="width: 100%; max-width: 650px; background-color: #ffffff; ${borderStyle} margin: 0;">
                 <tr>
                     <td style="padding: 20px;">
                         ${innerContent}
@@ -576,7 +586,8 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                 primaryColor: document.getElementById('primaryColor').value,
                 fontSize: document.getElementById('fontSize').value,
                 logoWidth: document.getElementById('logoWidth').value,
-                googleReviewUrl: document.getElementById('googleReviewUrl').value
+                googleReviewUrl: document.getElementById('googleReviewUrl').value,
+                showBorder: document.getElementById('showBorder').checked
             };
         }
 
