@@ -438,7 +438,7 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                     </td>`;
                 }
             });
-            return `<table cellpadding="0" cellspacing="0" border="0" style="margin-top: 10px;"><tr>${iconsCells}</tr></table>`;
+            return `<table cellpadding="0" cellspacing="0" border="0"><tr>${iconsCells}</tr></table>`;
         }
 
         function generateHTML(data) {
@@ -490,7 +490,7 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                     <tr>
                         <td height="28" bgcolor="${data.primaryColor}" style="height:28px; background-color:${data.primaryColor}; border-radius:4px; mso-padding-alt:0 12px; vertical-align:middle;">
                             <a href="${reviewHref}" target="_blank" style="color:#ffffff; text-decoration:none; font-weight:bold; font-size:12px; font-family:Arial,sans-serif; display:inline-block; line-height:28px; padding:0 12px; mso-line-height-rule:exactly;">
-                                &#11088; Laissez un avis
+                                &#11088; Laisser un avis
                             </a>
                         </td>
                     </tr>
