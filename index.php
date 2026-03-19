@@ -499,13 +499,10 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
 
             function footerRow() {
                 if (!iconsHtml && !reviewBtnHtml) return '';
-                return `
-                <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="padding-top:10px;">
-                    <tr>
-                        <td valign="middle" style="padding-right:15px;">${iconsHtml}</td>
-                        <td valign="middle">${reviewBtnHtml}</td>
-                    </tr>
-                </table>`;
+                let rows = '';
+                if (iconsHtml) rows += `<tr><td valign="middle" style="padding-top:10px;">${iconsHtml}</td></tr>`;
+                if (reviewBtnHtml) rows += `<tr><td valign="middle" style="padding-top:6px;">${reviewBtnHtml}</td></tr>`;
+                return `<table cellpadding="0" cellspacing="0" border="0" role="presentation">${rows}</table>`;
             }
 
             let innerContent = "";
@@ -521,7 +518,7 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                             </table>
                         </td>
                         <td valign="top">
-                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="font-family:Arial,sans-serif;">
+                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="font-family:Arial,sans-serif;">
                                 <tr><td style="font-weight:bold; font-size:${fs + 4}px; color:#000000; padding-bottom:2px; line-height:1.3; mso-line-height-rule:exactly;">${safeName}</td></tr>
                                 <tr><td style="color:${data.primaryColor}; font-weight:bold; font-size:${fs}px; padding-bottom:6px;">${safeJob}${safeCompany ? ' | ' + safeCompany : ''}</td></tr>
                                 ${taglineHtml ? `<tr><td style="font-size:${fs - 1}px; color:#666666; padding-bottom:8px; font-style:italic;">${taglineHtml}</td></tr>` : `<tr><td style="padding-bottom:8px; font-size:1px; line-height:1px;">&nbsp;</td></tr>`}
@@ -545,7 +542,7 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                     <tr>
                         ${finalLogoUrl ? `<td valign="top" width="${logoW}" style="padding-right:20px;"><img src="${finalLogoUrl}" alt="${safeCompany || 'Logo'}" width="${logoW}" height="auto" style="width:${logoW}px; border-radius:50%; display:block; border:0;"></td>` : ''}
                         <td valign="top">
-                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="font-family:Arial,sans-serif;">
+                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="font-family:Arial,sans-serif;">
                                 <tr><td style="font-weight:bold; font-size:${fs + 4}px; color:#000000; line-height:1.3; mso-line-height-rule:exactly;">${safeName}</td></tr>
                                 <tr><td style="font-size:${fs}px; color:#555555; padding-bottom:2px;">${safeJob} @ ${safeCompany}</td></tr>
                                 ${taglineHtml ? `<tr><td style="font-size:${fs - 2}px; color:#888888;">${taglineHtml}</td></tr>` : ''}
@@ -554,11 +551,9 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                                 </td></tr>
                                 ${infoRows ? `<tr><td><table cellpadding="0" cellspacing="0" border="0" style="font-size:${fs}px;">${infoRows}</table></td></tr>` : ''}
                                 <tr><td>
-                                    <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="padding-top:5px;">
-                                        <tr>
-                                            <td align="left" valign="middle">${iconsHtml}</td>
-                                            <td align="right" valign="middle">${reviewBtnHtml}</td>
-                                        </tr>
+                                    <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="padding-top:5px;">
+                                        ${iconsHtml ? `<tr><td align="left" valign="middle">${iconsHtml}</td></tr>` : ''}
+                                        ${reviewBtnHtml ? `<tr><td align="left" valign="middle" style="padding-top:6px;">${reviewBtnHtml}</td></tr>` : ''}
                                     </table>
                                 </td></tr>
                             </table>
@@ -573,7 +568,7 @@ il/lui" class="w-full" oninput="updateSignature()"></textarea>
                     ${finalLogoUrl ? `<tr><td style="padding-bottom:15px;"><img src="${finalLogoUrl}" alt="${safeCompany || 'Logo'}" width="${logoW}" height="auto" style="width:${logoW}px; display:block; border:0;"></td></tr>` : ''}
                     <tr>
                         <td style="border-left:4px solid ${data.primaryColor}; padding-left:15px;">
-                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="font-family:Arial,sans-serif;">
+                            <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="font-family:Arial,sans-serif;">
                                 <tr><td style="font-weight:bold; font-size:${fs + 6}px; color:#000000; line-height:1.3; mso-line-height-rule:exactly;">${safeName}</td></tr>
                                 <tr><td style="color:${data.primaryColor}; font-weight:bold; font-size:${fs}px; text-transform:uppercase;">${safeJob}</td></tr>
                                 ${taglineHtml ? `<tr><td style="font-size:${fs - 2}px; color:#666666; padding-bottom:12px; padding-top:2px;">${taglineHtml}</td></tr>` : `<tr><td style="padding-bottom:12px; font-size:1px; line-height:1px;">&nbsp;</td></tr>`}
